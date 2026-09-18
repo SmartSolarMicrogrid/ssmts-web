@@ -1,4 +1,4 @@
-// ─── Bootstrap 5 Variable Overrides — SSMTS Light Theme ───────────────────────
+// Bootstrap 5 Variable Overrides — SSMTS Light Theme (Sharp Corners)
 
 // Colours
 $body-bg:         #f4f6fa;
@@ -13,50 +13,43 @@ $light:           #f9fafb;
 $dark:            #111827;
 
 // Surfaces
-$card-bg:                 #ffffff;
-$modal-content-bg:        #ffffff;
-$input-bg:                #ffffff;
-$input-border-color:      #d1d5db;
+$card-bg:                  #ffffff;
+$modal-content-bg:         #ffffff;
+$input-bg:                 #ffffff;
+$input-border-color:       #d1d5db;
 $input-focus-border-color: #d97706;
-$input-focus-box-shadow:  0 0 0 0.2rem rgba(217, 119, 6, 0.15);
-
-// Navbar
-$navbar-light-bg:         #ffffff;
-$navbar-light-color:      #374151;
+$input-focus-box-shadow:   0 0 0 0.2rem rgba(217,119,6,.15);
 
 // Table
-$table-striped-bg:        #f9fafb;
-$table-hover-bg:          #fff8e6;
-$table-border-color:      #e5e7eb;
+$table-striped-bg:   #f9fafb;
+$table-hover-bg:     #fffbeb;
+$table-border-color: #e5e7eb;
 
 // Border
-$border-color:            #e5e7eb;
+$border-color: #e5e7eb;
 
 // Typography
-$font-family-sans-serif:  'Inter', system-ui, -apple-system, sans-serif;
-$font-size-base:          0.9rem;
-$headings-font-weight:    600;
+$font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+$font-size-base:         0.9rem;
+$headings-font-weight:   600;
 
-// ─── Sharp Corners — ZERO border-radius everywhere ──────────────────────────
-$border-radius:             0 !default;
-$border-radius-sm:          0 !default;
-$border-radius-lg:          0 !default;
-$border-radius-xl:          0 !default;
-$border-radius-xxl:         0 !default;
-$border-radius-pill:        0 !default;
-$btn-border-radius:         0 !default;
-$btn-border-radius-sm:      0 !default;
-$btn-border-radius-lg:      0 !default;
-$input-border-radius:       0 !default;
-$input-border-radius-sm:    0 !default;
-$input-border-radius-lg:    0 !default;
-$card-border-radius:        0 !default;
+// ── Zero border-radius everywhere ──────────────────────────────────────────
+$border-radius:               0 !default;
+$border-radius-sm:            0 !default;
+$border-radius-lg:            0 !default;
+$border-radius-xl:            0 !default;
+$border-radius-xxl:           0 !default;
+$border-radius-pill:          0 !default;
+$btn-border-radius:           0 !default;
+$btn-border-radius-sm:        0 !default;
+$btn-border-radius-lg:        0 !default;
+$input-border-radius:         0 !default;
+$input-border-radius-sm:      0 !default;
+$input-border-radius-lg:      0 !default;
+$card-border-radius:          0 !default;
 $modal-content-border-radius: 0 !default;
-$badge-border-radius:       0 !default;
-$dropdown-border-radius:    0 !default;
-$toast-border-radius:       0 !default;
-$alert-border-radius:       0 !default;
-$list-group-border-radius:  0 !default;
-$nav-pills-border-radius:   0 !default;
-$form-select-border-radius: 0 !default;
-$form-check-input-border-radius: 0 !default;
+$badge-border-radius:         0 !default;
+$dropdown-border-radius:      0 !default;
+$toast-border-radius:         0 !default;
+$alert-border-radius:         0 !default;
+$form-select-border-radius:   0 !default;

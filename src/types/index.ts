@@ -1,5 +1,3 @@
-// ─── SSMTS Shared TypeScript Interfaces ────────────────────────────────────────
-
 export type UserRole = 'Backoffice' | 'GridOperator';
 export type ActiveStatus = 'Active' | 'Suspended';
 export type NodeStatus = 'Active' | 'Inactive' | 'Maintenance';
