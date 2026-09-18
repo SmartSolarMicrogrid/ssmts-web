@@ -139,7 +139,9 @@ body {
   &.status-inactive    { background: #f3f4f6; color: #6b7280; }
   &.status-maintenance { background: #fef3c7; color: #92400e; }
   &.status-scheduled   { background: #dbeafe; color: #1e40af; }
-  &.status-completed   { background: #d1fae5; color: #065f46; }
+  &.status-pending     { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  &.status-approved    { background: #d1fae5; color: #065f46; }
+  &.status-completed   { background: #e0e7ff; color: #3730a3; }
   &.status-cancelled   { background: #fee2e2; color: #991b1b; }
 }
 

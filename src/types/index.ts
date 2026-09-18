@@ -1,9 +1,9 @@
 export type UserRole = 'Backoffice' | 'GridOperator';
 export type ActiveStatus = 'Active' | 'Suspended';
 export type NodeStatus = 'Active' | 'Inactive' | 'Maintenance';
-export type ProsumerStatus = 'Active' | 'Deactivated';
+export type ProsumerStatus = 'Active' | 'Deactivated' | 'PendingActivation';
 export type ReservationType = 'Export' | 'Import';
-export type ReservationStatus = 'Scheduled' | 'Completed' | 'Cancelled';
+export type ReservationStatus = 'Pending' | 'Approved' | 'Completed' | 'Cancelled';
 
 export interface User {
   id: string;
@@ -30,6 +30,7 @@ export interface MicrogridNode {
   name: string;
   location: { lat: number; lng: number };
   capacityKW: number;
+  capacityKWh?: number;
   batterySlots: number;
   operatingHours: string;
   status: NodeStatus;
@@ -48,6 +49,7 @@ export interface Reservation {
   endTime: string;
   type: ReservationType;
   status: ReservationStatus;
+  createdAt?: string;
 }
 
 export interface AuthUser {
