@@ -1,47 +1,66 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthUser, UserRole } from '../types';
+import { authApi } from '../services/api';
 
 interface AuthContextType {
   user: AuthUser | null;
   role: UserRole | null;
-  login: (email: string, password: string, roleOverride?: UserRole) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MOCK_CREDENTIALS = [
-  { id: 'USR001', name: 'Amara Silva',    email: 'admin@ssmts.lk',    password: 'admin123', role: 'Backoffice'   as UserRole },
-  { id: 'USR002', name: 'Kavinda Perera', email: 'operator@ssmts.lk', password: 'op123',    role: 'GridOperator' as UserRole },
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email: string, password: string, roleOverride?: UserRole): boolean => {
-    if (roleOverride) {
-      setUser({
-        id: 'DEMO',
-        name: roleOverride === 'Backoffice' ? 'Demo Backoffice' : 'Demo Grid Operator',
-        email: email || 'demo@ssmts.lk',
-        role: roleOverride,
-      });
-      return true;
+  // Rehydrate authenticated session from JWT token on reload
+  useEffect(() => {
+    async function rehydrateUser() {
+      const token = localStorage.getItem('ssmts_token');
+      if (token) {
+        try {
+          const profile = await authApi.getMe();
+          setUser(profile);
+        } catch {
+          authApi.logout();
+          setUser(null);
+        }
+      }
+      setLoading(false);
     }
-    const found = MOCK_CREDENTIALS.find(u => u.email === email && u.password === password);
-    if (found) {
-      const { password: _p, ...authUser } = found;
-      setUser(authUser);
+    rehydrateUser();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const res = await authApi.login(email, password);
+      setUser(res.user);
       return true;
+    } catch {
+      return false;
     }
-    return false;
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    authApi.logout();
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, role: user?.role ?? null, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role: user?.role ?? null,
+        login,
+        logout,
+        isAuthenticated: !!user,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

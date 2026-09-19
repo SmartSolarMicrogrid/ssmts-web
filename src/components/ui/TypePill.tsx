@@ -1,5 +1,11 @@
 import type { ReservationType } from '../../types';
-interface TypePillProps { type: ReservationType; }
-export default function TypePill({ type }: TypePillProps) {
+
+interface TypePillProps {
+  type: ReservationType;
+}
+
+export function TypePill({ type }: TypePillProps) {
   return <span className={`type-pill type-${type.toLowerCase()}`}>{type}</span>;
 }
+
+export default TypePill;

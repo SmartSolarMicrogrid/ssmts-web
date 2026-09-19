@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockUsers, mockProsumers, mockNodes, mockReservations } from '../../data/mockData';
+import { usersApi, prosumersApi, nodesApi, reservationsApi } from '../../services/api';
+import type { User, Prosumer, MicrogridNode, Reservation } from '../../types';
 import { Users, Zap, Network, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -44,21 +46,47 @@ function StatCard({
 
 export default function DashboardPage() {
   const { role, user } = useAuth();
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [nodes, setNodes] = useState<MicrogridNode[]>([]);
+  const [prosumers, setProsumers] = useState<Prosumer[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      setLoading(true);
+      try {
+        const [resList, nodeList, prosumerList, userList] = await Promise.all([
+          reservationsApi.getAll().catch(() => []),
+          nodesApi.getAll().catch(() => []),
+          prosumersApi.getAll().catch(() => []),
+          role === 'Backoffice' ? usersApi.getAll().catch(() => []) : Promise.resolve([]),
+        ]);
+        setReservations(resList);
+        setNodes(nodeList);
+        setProsumers(prosumerList);
+        setUsers(userList);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, [role]);
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const pendingReservations = mockReservations.filter(r => r.status === 'Pending').length;
-  const approvedFutureReservations = mockReservations.filter(
+  const pendingReservations = reservations.filter(r => r.status === 'Pending').length;
+  const approvedFutureReservations = reservations.filter(
     r => r.status === 'Approved' && r.slotDate >= todayStr
   ).length;
-  const activeNodes = mockNodes.filter(n => n.status === 'Active').length;
-  const pendingProsumers = mockProsumers.filter(p => p.status === 'PendingActivation').length;
-  const totalCapacityKW = mockNodes.reduce((acc, n) => acc + n.capacityKW, 0);
+  const activeNodes = nodes.filter(n => n.status === 'Active').length;
+  const pendingProsumers = prosumers.filter(p => p.status === 'PendingActivation').length;
+  const totalCapacityKW = nodes.reduce((acc, n) => acc + (n.capacityKW || 0), 0);
 
   return (
     <div>
       <div className="page-header d-flex justify-content-between align-items-center">
         <div>
-          <h4>Welcome back, {user?.name?.split(' ')[0]} 👋</h4>
+          <h4>Welcome back, {user?.name?.split(' ')[0] || 'Officer'} 👋</h4>
           <p>
             {role === 'Backoffice'
               ? 'System Administration & Commercial Operations Console'
@@ -93,15 +121,15 @@ export default function DashboardPage() {
             <StatCard
               label="Pending Prosumers"
               value={pendingProsumers}
-              sub={`${mockProsumers.length} total registered`}
+              sub={`${prosumers.length} total registered`}
               icon={<Zap size={20} />}
               accent="#d97706"
               linkTo="/prosumers"
             />
             <StatCard
               label="Active Users"
-              value={mockUsers.filter(u => u.status === 'Active').length}
-              sub={`${mockUsers.length} total staff`}
+              value={users.filter(u => u.status === 'Active').length}
+              sub={`${users.length} total staff`}
               icon={<Users size={20} />}
               accent="#0284c7"
               linkTo="/users"
@@ -128,7 +156,7 @@ export default function DashboardPage() {
             <StatCard
               label="Active Grid Hubs"
               value={activeNodes}
-              sub={`${mockNodes.length} total hubs online`}
+              sub={`${nodes.length} total hubs online`}
               icon={<Network size={20} />}
               accent="#0284c7"
               linkTo="/nodes"
@@ -157,34 +185,40 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="p-0">
-              <table className="table ssmts-table mb-0">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Prosumer</th>
-                    <th>Node / Hub</th>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockReservations.slice(0, 6).map(r => (
-                    <tr key={r.id}>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{r.id}</td>
-                      <td style={{ fontSize: '0.82rem', fontWeight: 600 }}>{r.prosumerName}</td>
-                      <td style={{ fontSize: '0.8rem' }}>{r.nodeName}</td>
-                      <td style={{ fontSize: '0.8rem' }}>{r.slotDate}</td>
-                      <td>
-                        <span className={`type-pill type-${r.type.toLowerCase()}`}>{r.type}</span>
-                      </td>
-                      <td>
-                        <span className={`status-pill status-${r.status.toLowerCase()}`}>{r.status}</span>
-                      </td>
+              {loading ? (
+                <div className="text-center py-4 text-muted">Loading live reservations...</div>
+              ) : reservations.length === 0 ? (
+                <div className="text-center py-4 text-muted">No reservations recorded in database.</div>
+              ) : (
+                <table className="table ssmts-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Prosumer</th>
+                      <th>Node / Hub</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reservations.slice(0, 6).map(r => (
+                      <tr key={r.id}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{r.id}</td>
+                        <td style={{ fontSize: '0.82rem', fontWeight: 600 }}>{r.prosumerName}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{r.nodeName}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{r.slotDate}</td>
+                        <td>
+                          <span className={`type-pill type-${r.type.toLowerCase()}`}>{r.type}</span>
+                        </td>
+                        <td>
+                          <span className={`status-pill status-${r.status.toLowerCase()}`}>{r.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
@@ -199,17 +233,23 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="ssmts-card-body">
-              {mockNodes.map(node => (
-                <div key={node.nodeId} className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                  <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{node.name}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
-                      {node.capacityKW} kW · {node.batterySlots} storage slots
+              {loading ? (
+                <div className="text-center py-4 text-muted">Loading solar stations...</div>
+              ) : nodes.length === 0 ? (
+                <div className="text-center py-4 text-muted">No microgrid stations registered.</div>
+              ) : (
+                nodes.map(node => (
+                  <div key={node.nodeId} className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{node.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                        {node.capacityKW} kW · {node.batterySlots} storage slots
+                      </div>
                     </div>
+                    <span className={`status-pill status-${node.status.toLowerCase()}`}>{node.status}</span>
                   </div>
-                  <span className={`status-pill status-${node.status.toLowerCase()}`}>{node.status}</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -15,7 +15,7 @@ interface DataTableProps<T> {
   pageSize?: number;
 }
 
-export default function DataTable<T extends Record<string, unknown>>({
+export default function DataTable<T extends Record<string, any>>({
   data, columns, keyExtractor, searchKeys = [], pageSize = 8,
 }: DataTableProps<T>) {
   const [query, setQuery] = useState('');
