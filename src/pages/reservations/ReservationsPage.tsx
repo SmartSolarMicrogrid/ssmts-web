@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, type FormEvent } from 'react';
-import type { Reservation, ReservationType, ReservationStatus, MicrogridNode, Prosumer } from '../../types';
+import type { Reservation, ReservationType, ReservationStatus, MicrogridNode, Prosumer, SlotResponseDto } from '../../types';
 import { reservationsApi, nodesApi, prosumersApi } from '../../services/api';
 import DataTable from '../../components/ui/DataTable';
 import StatusPill from '../../components/ui/StatusPill';
 import TypePill from '../../components/ui/TypePill';
-import { Plus, Pencil, Trash2, Info, CheckCircle2, ShieldAlert, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Info, CheckCircle2, ShieldAlert, XCircle, Clock } from 'lucide-react';
 
 // Max date = today + 7 days
 function maxDate(): string {
@@ -20,6 +20,8 @@ function todayStr(): string {
 interface FormState {
   prosumerNic: string;
   nodeId: string;
+  slotId: string;
+  requestedKwh: string;
   bayNumber: string;
   slotDate: string;
   startTime: string;
@@ -44,20 +46,69 @@ function ReservationModal({ reservation, nodes, prosumers, onSave, onClose }: Re
   const [form, setForm] = useState<FormState>({
     prosumerNic: reservation?.prosumerNic ?? (activeProsumers[0]?.nic ?? ''),
     nodeId: reservation?.nodeId ?? defaultNodeId,
+    slotId: reservation?.slotId ?? '',
+    requestedKwh: String(reservation?.requestedKwh ?? 20),
     bayNumber: String(reservation?.bayNumber ?? 1),
     slotDate: reservation?.slotDate ?? todayStr(),
-    startTime: reservation?.startTime ?? '09:00',
-    endTime: reservation?.endTime ?? '11:00',
+    startTime: reservation?.startTime ?? '06:00',
+    endTime: reservation?.endTime ?? '07:00',
     type: reservation?.type ?? 'Export',
     status: reservation?.status ?? 'Pending',
   });
 
+  const [slots, setSlots] = useState<SlotResponseDto[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const setField = (field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    if (!form.nodeId || !form.slotDate) return;
+    let isMounted = true;
+
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        const nodeObj = nodes.find(n => n.nodeId === form.nodeId);
+        const targetId = nodeObj?.id || form.nodeId;
+        let data = await nodesApi.getSlots(targetId, form.slotDate);
+        if ((!data || data.length === 0) && isMounted) {
+          // Auto generate slots for this date if none exists
+          await nodesApi.generateSlots(targetId, form.slotDate, form.slotDate).catch(() => {});
+          data = await nodesApi.getSlots(targetId, form.slotDate);
+        }
+        if (!isMounted) return;
+        setSlots(data || []);
+
+        if (data && data.length > 0) {
+          const nowMs = Date.now();
+          const matched = data.find(s => s.id === form.slotId && new Date(s.startUtc).getTime() > nowMs);
+          if (!matched) {
+            const firstOpen = data.find(s => s.status === 'Available' && (s.capacity - s.bookedCount) > 0 && new Date(s.startUtc).getTime() > nowMs);
+            if (firstOpen) {
+              setField('slotId', firstOpen.id);
+              const sT = new Date(firstOpen.startUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              const eT = new Date(firstOpen.endUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              setField('startTime', sT);
+              setField('endTime', eT);
+            } else {
+              setField('slotId', '');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching slots for node', err);
+      } finally {
+        if (isMounted) setLoadingSlots(false);
+      }
+    };
+
+    fetchSlots();
+    return () => { isMounted = false; };
+  }, [form.nodeId, form.slotDate, nodes]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -71,17 +122,12 @@ function ReservationModal({ reservation, nodes, prosumers, onSave, onClose }: Re
       errs.slotDate = 'Date must be scheduled within 7 days from today';
     }
 
-    if (!form.startTime) {
-      errs.startTime = 'Start time is required';
-    }
-    if (!form.endTime) {
-      errs.endTime = 'End time is required';
-    } else if (form.startTime && form.endTime <= form.startTime) {
-      errs.endTime = 'End time must be later than start time';
+    if (!form.slotId && !reservation) {
+      errs.slotId = 'Please select an available booking slot';
     }
 
-    if (!form.bayNumber || Number(form.bayNumber) < 1) {
-      errs.bayNumber = 'Valid bay/slot number is required (min 1)';
+    if (!form.requestedKwh || Number(form.requestedKwh) < 5) {
+      errs.requestedKwh = 'Requested energy must be at least 5 kWh';
     }
 
     setErrors(errs);
@@ -201,28 +247,84 @@ function ReservationModal({ reservation, nodes, prosumers, onSave, onClose }: Re
                 {errors.slotDate && <div className="invalid-feedback">{errors.slotDate}</div>}
               </div>
 
+              <div className="mb-3">
+                <label className="form-label" htmlFor="res-slot">
+                  Available Booking Slot {loadingSlots && <span className="text-muted" style={{ fontSize: '0.75rem' }}>(Loading slots...)</span>}
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text"><Clock size={16} /></span>
+                  <select
+                    id="res-slot"
+                    className={`form-select ${errors.slotId ? 'is-invalid' : ''}`}
+                    value={form.slotId}
+                    disabled={loadingSlots || slots.length === 0}
+                    onChange={e => {
+                      const selectedId = e.target.value;
+                      setField('slotId', selectedId);
+                      const chosen = slots.find(s => s.id === selectedId);
+                      if (chosen) {
+                        const sT = new Date(chosen.startUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        const eT = new Date(chosen.endUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        setField('startTime', sT);
+                        setField('endTime', eT);
+                      }
+                    }}
+                  >
+                    {loadingSlots ? (
+                      <option value="">Generating & loading available slots...</option>
+                    ) : slots.length === 0 ? (
+                      <option value="">No slots configured for this date</option>
+                    ) : (
+                      <>
+                        <option value="">— Select Slot Window —</option>
+                        {slots.map(s => {
+                          const sT = new Date(s.startUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                          const eT = new Date(s.endUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                          const remaining = s.capacity - s.bookedCount;
+                          const isPast = new Date(s.startUtc).getTime() <= Date.now();
+                          const isAvail = !isPast && s.status === 'Available' && remaining > 0;
+                          return (
+                            <option key={s.id} value={s.id} disabled={!isAvail && s.id !== form.slotId}>
+                              {sT} – {eT} {isPast ? '(Slot Expired / Passed)' : `(${s.status} · ${remaining} of ${s.capacity} bays open)`}
+                            </option>
+                          );
+                        })}
+                      </>
+                    )}
+                  </select>
+                </div>
+                {slots.length > 0 && slots.every(s => new Date(s.startUtc).getTime() <= Date.now()) && (
+                  <div className="text-warning mt-1" style={{ fontSize: '0.78rem' }}>
+                    ⚠️ All slots for today have already passed. Please choose tomorrow or another day within 7 days.
+                  </div>
+                )}
+                {errors.slotId && <div className="invalid-feedback d-block">{errors.slotId}</div>}
+              </div>
+
               <div className="row mb-3">
                 <div className="col-6">
-                  <label className="form-label" htmlFor="res-start">Start Time</label>
+                  <label className="form-label" htmlFor="res-kwh">Requested Energy (kWh)</label>
                   <input
-                    id="res-start"
-                    type="time"
-                    className={`form-control ${errors.startTime ? 'is-invalid' : ''}`}
-                    value={form.startTime}
-                    onChange={e => setField('startTime', e.target.value)}
+                    id="res-kwh"
+                    type="number"
+                    min={5}
+                    max={100}
+                    step={1}
+                    className={`form-control ${errors.requestedKwh ? 'is-invalid' : ''}`}
+                    value={form.requestedKwh}
+                    onChange={e => setField('requestedKwh', e.target.value)}
                   />
-                  {errors.startTime && <div className="invalid-feedback">{errors.startTime}</div>}
+                  {errors.requestedKwh && <div className="invalid-feedback">{errors.requestedKwh}</div>}
                 </div>
                 <div className="col-6">
-                  <label className="form-label" htmlFor="res-end">End Time</label>
+                  <label className="form-label" htmlFor="res-slot-time">Slot Time Range</label>
                   <input
-                    id="res-end"
-                    type="time"
-                    className={`form-control ${errors.endTime ? 'is-invalid' : ''}`}
-                    value={form.endTime}
-                    onChange={e => setField('endTime', e.target.value)}
+                    id="res-slot-time"
+                    type="text"
+                    readOnly
+                    className="form-control bg-light"
+                    value={`${form.startTime} – ${form.endTime}`}
                   />
-                  {errors.endTime && <div className="invalid-feedback">{errors.endTime}</div>}
                 </div>
               </div>
 
@@ -374,10 +476,14 @@ export default function ReservationsPage() {
 
   const handleSave = async (data: FormState) => {
     try {
+      const targetNode = nodes.find(n => n.nodeId === data.nodeId);
+      const targetNodeId = targetNode?.id || data.nodeId;
+
       if (editItem) {
         await reservationsApi.modify(editItem.id, {
+          newSlotId: data.slotId || undefined,
           newTradeType: data.type,
-          newRequestedKwh: 20,
+          newRequestedKwh: Number(data.requestedKwh) || 20,
         });
         setReservations(prev =>
           prev.map(r =>
@@ -386,6 +492,8 @@ export default function ReservationsPage() {
                   ...r,
                   prosumerNic: data.prosumerNic,
                   nodeId: data.nodeId,
+                  slotId: data.slotId || r.slotId,
+                  requestedKwh: Number(data.requestedKwh) || 20,
                   bayNumber: Number(data.bayNumber),
                   slotDate: data.slotDate,
                   startTime: data.startTime,
@@ -399,9 +507,10 @@ export default function ReservationsPage() {
         showToast(`Reservation ${editItem.id} updated successfully.`, 'success');
       } else {
         const created = await reservationsApi.create({
-          nodeId: data.nodeId,
+          nodeId: targetNodeId,
+          slotId: data.slotId,
           tradeType: data.type,
-          requestedKwh: 20,
+          requestedKwh: Number(data.requestedKwh) || 20,
           prosumerNic: data.prosumerNic,
         });
         setReservations(prev => [created, ...prev]);
@@ -427,9 +536,9 @@ export default function ReservationsPage() {
   const columns = [
     {
       key: 'id',
-      header: 'Reservation ID',
+      header: 'Reservation No',
       render: (r: Reservation) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 600 }}>{r.id}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 600 }}>{r.reservationNo || r.id}</span>
       ),
     },
     {

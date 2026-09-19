@@ -26,6 +26,7 @@ export interface Prosumer {
 }
 
 export interface MicrogridNode {
+  id?: string;
   nodeId: string;
   name: string;
   location: { lat: number; lng: number };
@@ -39,6 +40,7 @@ export interface MicrogridNode {
 
 export interface Reservation {
   id: string;
+  reservationNo?: string;
   prosumerNic: string;
   prosumerName: string;
   nodeId: string;
@@ -152,16 +154,14 @@ export interface NodeResponseDto {
 export interface SlotResponseDto {
   id: string;
   nodeId: string;
-  slotIndex: number;
-  startTimeUtc: string;
-  endTimeUtc: string;
   localDate: string;
-  allocatedKwh: number;
-  maxCapacityKwh: number;
-  activeReservationsCount: number;
-  availableBays: number;
-  isAvailable: boolean;
+  startUtc: string;
+  endUtc: string;
+  capacity: number;
+  bookedCount: number;
+  availableCount?: number;
   status: string;
+  version?: number;
 }
 
 export interface CreateReservationRequest {

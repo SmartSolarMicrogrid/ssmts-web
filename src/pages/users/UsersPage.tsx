@@ -32,8 +32,16 @@ function UserModal({
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Full name is required';
     if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email is required';
-    if (!user && (!form.password || form.password.length < 6)) {
-      e.password = 'Password is required (min 6 chars)';
+    if (!user) {
+      if (!form.password) {
+        e.password = 'Password is required';
+      } else if (form.password.length < 8) {
+        e.password = 'Password must be at least 8 characters';
+      } else if (!/[A-Z]/.test(form.password)) {
+        e.password = 'Password must contain at least one uppercase letter (A-Z)';
+      } else if (!/[0-9]/.test(form.password)) {
+        e.password = 'Password must contain at least one number (0-9)';
+      }
     }
     setErr(e);
     return !Object.keys(e).length;
@@ -108,9 +116,15 @@ function UserModal({
                     className={`form-control ${err.password ? 'is-invalid' : ''}`}
                     value={form.password}
                     onChange={e => set('password', e.target.value)}
-                    placeholder="Min 6 characters"
+                    placeholder="e.g. User@1234"
                   />
-                  {err.password && <div className="invalid-feedback">{err.password}</div>}
+                  {err.password ? (
+                    <div className="invalid-feedback">{err.password}</div>
+                  ) : (
+                    <div className="text-muted mt-1" style={{ fontSize: '0.75rem' }}>
+                      Must be at least 8 characters with at least one uppercase letter (A-Z) and one number (0-9).
+                    </div>
+                  )}
                 </div>
               )}
             </div>

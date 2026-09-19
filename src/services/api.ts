@@ -33,7 +33,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      const err = new Error(errorData.message || `Request failed with status ${res.status}`);
+      let message = `Request failed with status ${res.status}`;
+      if (errorData?.detail) {
+        message = errorData.detail;
+      } else if (errorData?.message) {
+        message = errorData.message;
+      } else if (errorData?.errors && typeof errorData.errors === 'object') {
+        const errList = Object.values(errorData.errors).flat().filter(Boolean);
+        if (errList.length > 0) message = errList.join('; ');
+      } else if (errorData?.title) {
+        message = errorData.title;
+      }
+      const err = new Error(message);
       (err as unknown as Record<string, unknown>).status = res.status;
       (err as unknown as Record<string, unknown>).data = errorData;
       throw err;
@@ -306,6 +317,7 @@ export const nodesApi = {
     }
     const data = await request<BackendNode[]>('/nodes');
     return (data || []).map(n => ({
+      id: n.id,
       nodeId: n.nodeCode || n.id,
       name: n.name,
       location: { lat: n.latitude, lng: n.longitude },
@@ -335,6 +347,7 @@ export const nodesApi = {
       body: JSON.stringify(data),
     });
     return {
+      id: n.id,
       nodeId: n.nodeCode || n.id,
       name: n.name,
       location: { lat: n.latitude, lng: n.longitude },
@@ -368,6 +381,13 @@ export const nodesApi = {
   async getSlots(nodeId: string, date: string): Promise<SlotResponseDto[]> {
     return await request<SlotResponseDto[]>(`/nodes/${nodeId}/slots?date=${encodeURIComponent(date)}`);
   },
+
+  async generateSlots(nodeId: string, fromDate: string, toDate: string): Promise<void> {
+    await request(`/nodes/${nodeId}/slots/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ fromDate, toDate }),
+    });
+  },
 };
 
 // ── Energy Slot Reservation Management (Module 4) ─────────────────────────────
@@ -397,7 +417,8 @@ export const reservationsApi = {
       const startTime = r.slotStartUtc ? r.slotStartUtc.split('T')[1]?.slice(0, 5) : '09:00';
       const endTime = r.slotEndUtc ? r.slotEndUtc.split('T')[1]?.slice(0, 5) : '11:00';
       return {
-        id: r.reservationNo || r.id,
+        id: r.id || r.reservationNo,
+        reservationNo: r.reservationNo || r.id,
         prosumerNic: r.prosumerNic,
         prosumerName: `Prosumer (${r.prosumerNic})`,
         nodeId: r.nodeId,
@@ -433,7 +454,8 @@ export const reservationsApi = {
       body: JSON.stringify(data),
     });
     return {
-      id: r.reservationNo || r.id,
+      id: r.id || r.reservationNo,
+      reservationNo: r.reservationNo || r.id,
       prosumerNic: r.prosumerNic,
       prosumerName: `Prosumer (${r.prosumerNic})`,
       nodeId: r.nodeId,
@@ -444,6 +466,8 @@ export const reservationsApi = {
       endTime: r.slotEndUtc ? r.slotEndUtc.split('T')[1]?.slice(0, 5) : '11:00',
       type: (r.tradeType as Reservation['type']) || 'Export',
       status: (r.status as Reservation['status']) || 'Pending',
+      slotId: r.slotId,
+      requestedKwh: r.requestedKwh,
     };
   },
 

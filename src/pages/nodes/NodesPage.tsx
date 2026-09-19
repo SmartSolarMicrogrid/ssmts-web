@@ -237,9 +237,10 @@ export default function NodesPage() {
     const node = nodes.find(n => n.nodeId === nodeId);
     if (!node) return;
 
+    const targetId = node.id || nodeId;
     if (node.status === 'Active') {
       try {
-        await nodesApi.deactivate(nodeId);
+        await nodesApi.deactivate(targetId);
         setNodes(p => p.map(n => (n.nodeId === nodeId ? { ...n, status: 'Inactive' as const } : n)));
         showToast(`Node ${node.name} has been deactivated.`, 'success');
       } catch (err: unknown) {
@@ -249,7 +250,7 @@ export default function NodesPage() {
       }
     } else {
       try {
-        await nodesApi.activate(nodeId);
+        await nodesApi.activate(targetId);
         setNodes(p => p.map(n => (n.nodeId === nodeId ? { ...n, status: 'Active' as const } : n)));
         showToast(`Node ${node.name} reactivated to Active state.`, 'success');
       } catch {
@@ -264,7 +265,7 @@ export default function NodesPage() {
 
     if (window.confirm(`Are you sure you want to delete station ${node.name} (${node.nodeId})?`)) {
       try {
-        await nodesApi.deactivate(nodeId);
+        await nodesApi.deactivate(node.id || nodeId);
         setNodes(p => p.filter(n => n.nodeId !== nodeId));
         showToast(`Station ${node.name} deleted successfully.`, 'success');
       } catch (err: unknown) {
@@ -277,7 +278,7 @@ export default function NodesPage() {
   const save = async (d: FormState) => {
     try {
       if (edit) {
-        await nodesApi.update(edit.nodeId, {
+        await nodesApi.update(edit.id || edit.nodeId, {
           name: d.name,
           latitude: Number(d.lat),
           longitude: Number(d.lng),
