@@ -51,9 +51,10 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <div className="brand-icon">⚡</div>
-          <h1>SS<span>MTS</span></h1>
-          <p>Smart Solar Microgrid Transaction System</p>
+          <img src="/logo.png" alt="SmartSolar Logo" className="login-brand-logo" />
+          <h1>Smart<span>Solar</span></h1>
+          <div className="brand-badge">SSMTS Enterprise Portal</div>
+          <p>Next-Gen Smart Solar Microgrid Transaction System</p>
         </div>
 
         {error && (

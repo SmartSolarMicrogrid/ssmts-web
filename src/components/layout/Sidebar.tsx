@@ -11,8 +11,11 @@ export default function Sidebar() {
   return (
     <aside className="ssmts-sidebar">
       <div className="sidebar-brand">
-        <span className="brand-icon">⚡</span>
-        <span className="brand-text">SS<span>MTS</span></span>
+        <img src="/logo.png" alt="SmartSolar Logo" className="brand-logo" />
+        <div className="brand-info">
+          <span className="brand-text">Smart<span>Solar</span></span>
+          <span className="brand-sub">SSMTS Portal</span>
+        </div>
       </div>
 
       <nav className="mt-2">

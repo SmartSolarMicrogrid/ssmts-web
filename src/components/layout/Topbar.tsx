@@ -20,7 +20,7 @@ export default function Topbar() {
     <header className="ssmts-topbar">
       <div>
         <div className="topbar-title">{title}</div>
-        <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Smart Solar Microgrid Transaction System</div>
+        <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>SmartSolar Microgrid Transaction System (SSMTS)</div>
       </div>
       <div className="topbar-right">
         <button className="btn btn-sm btn-outline-secondary" style={{ padding: '0.3rem 0.6rem' }}>
