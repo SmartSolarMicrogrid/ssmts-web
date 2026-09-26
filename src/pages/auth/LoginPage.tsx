@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, EyeOff, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert } from 'lucide-react';
 
 export default function LoginPage() {
   const { login, isAuthenticated, loading: authLoading } = useAuth();

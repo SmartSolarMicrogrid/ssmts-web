@@ -1,7 +1,7 @@
 export type UserRole = 'Backoffice' | 'GridOperator' | 'Prosumer';
 export type ActiveStatus = 'Active' | 'Suspended';
 export type NodeStatus = 'Active' | 'Inactive' | 'Maintenance';
-export type ProsumerStatus = 'Active' | 'Deactivated' | 'PendingActivation';
+export type ProsumerStatus = 'Active' | 'Deactivated' | 'PendingActivation' | 'Pending' | 'Inactive';
 export type ReservationType = 'Export' | 'Import';
 export type ReservationStatus = 'Pending' | 'Approved' | 'Completed' | 'Cancelled' | 'Rejected';
 
@@ -15,6 +15,7 @@ export interface User {
 }
 
 export interface Prosumer {
+  id?: string;
   nic: string;
   name: string;
   email: string;

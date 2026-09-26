@@ -79,7 +79,7 @@ export default function DashboardPage() {
     r => r.status === 'Approved' && r.slotDate >= todayStr
   ).length;
   const activeNodes = nodes.filter(n => n.status === 'Active').length;
-  const pendingProsumers = prosumers.filter(p => p.status === 'PendingActivation').length;
+  const pendingProsumers = prosumers.filter(p => p.status === 'PendingActivation' || p.status === 'Pending').length;
   const totalCapacityKW = nodes.reduce((acc, n) => acc + (n.capacityKW || 0), 0);
 
   return (

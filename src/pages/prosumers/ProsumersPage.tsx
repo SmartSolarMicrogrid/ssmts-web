@@ -171,42 +171,42 @@ export default function ProsumersPage() {
     loadProsumers();
   }, []);
 
-  const handleApprove = async (nic: string) => {
+  const handleApprove = async (p: Prosumer) => {
     try {
-      await prosumersApi.activate(nic);
-      setProsumers(p => p.map(x => (x.nic === nic ? { ...x, status: 'Active' as const } : x)));
-      showToast(`Prosumer ${nic} approved and activated successfully.`);
+      await prosumersApi.activate(p.id || p.nic);
+      setProsumers(prev => prev.map(x => (x.nic === p.nic ? { ...x, status: 'Active' as const } : x)));
+      showToast(`Prosumer ${p.nic} approved and activated successfully.`);
     } catch {
-      showToast(`Failed to approve prosumer ${nic}.`, 'error');
+      showToast(`Failed to approve prosumer ${p.nic}.`, 'error');
     }
   };
 
-  const handleReject = async (nic: string) => {
+  const handleReject = async (p: Prosumer) => {
     try {
-      await prosumersApi.deactivate(nic);
-      setProsumers(p => p.map(x => (x.nic === nic ? { ...x, status: 'Deactivated' as const } : x)));
-      showToast(`Pending activation for ${nic} was rejected.`);
+      await prosumersApi.deactivate(p.id || p.nic);
+      setProsumers(prev => prev.map(x => (x.nic === p.nic ? { ...x, status: 'Deactivated' as const } : x)));
+      showToast(`Pending activation for ${p.nic} was rejected.`);
     } catch {
-      showToast(`Could not reject prosumer ${nic}.`, 'error');
+      showToast(`Could not reject prosumer ${p.nic}.`, 'error');
     }
   };
 
-  const handleDeactivate = async (nic: string) => {
+  const handleDeactivate = async (p: Prosumer) => {
     try {
-      await prosumersApi.deactivate(nic);
-      setProsumers(p => p.map(x => (x.nic === nic ? { ...x, status: 'Deactivated' as const } : x)));
-      showToast(`Prosumer ${nic} deactivated. Only Backoffice officers can reactivate this account.`);
+      await prosumersApi.deactivate(p.id || p.nic);
+      setProsumers(prev => prev.map(x => (x.nic === p.nic ? { ...x, status: 'Deactivated' as const } : x)));
+      showToast(`Prosumer ${p.nic} deactivated. Only Backoffice officers can reactivate this account.`);
     } catch {
-      showToast(`Could not deactivate prosumer ${nic}.`, 'error');
+      showToast(`Could not deactivate prosumer ${p.nic}.`, 'error');
     }
   };
 
-  const handleReactivate = async (nic: string) => {
+  const handleReactivate = async (p: Prosumer) => {
     try {
       // Backend enforces: [Authorize(Roles = RoleConstants.Backoffice)]
-      await prosumersApi.reactivate(nic);
-      setProsumers(p => p.map(x => (x.nic === nic ? { ...x, status: 'Active' as const } : x)));
-      showToast(`Prosumer ${nic} reactivated by Backoffice officer.`);
+      await prosumersApi.reactivate(p.id || p.nic);
+      setProsumers(prev => prev.map(x => (x.nic === p.nic ? { ...x, status: 'Active' as const } : x)));
+      showToast(`Prosumer ${p.nic} reactivated by Backoffice officer.`);
     } catch {
       showToast(`Reactivation failed. Ensure you are signed in as Backoffice officer.`, 'error');
     }
@@ -243,10 +243,14 @@ export default function ProsumersPage() {
 
   const filteredProsumers = useMemo(() => {
     if (filter === 'All') return prosumers;
-    return prosumers.filter(p => p.status === filter);
+    return prosumers.filter(p => {
+      if (filter === 'PendingActivation') return p.status === 'PendingActivation' || p.status === 'Pending';
+      if (filter === 'Deactivated') return p.status === 'Deactivated' || p.status === 'Inactive';
+      return p.status === filter;
+    });
   }, [prosumers, filter]);
 
-  const pendingCount = prosumers.filter(p => p.status === 'PendingActivation').length;
+  const pendingCount = prosumers.filter(p => p.status === 'PendingActivation' || p.status === 'Pending').length;
 
   const cols = [
     {
@@ -285,13 +289,13 @@ export default function ProsumersPage() {
           >
             <Pencil size={13} />
           </button>
-          {p.status === 'PendingActivation' && (
+          {(p.status === 'PendingActivation' || p.status === 'Pending') && (
             <>
               <button
                 type="button"
                 className="btn btn-sm btn-success d-flex align-items-center gap-1"
                 title="Approve & Activate"
-                onClick={() => handleApprove(p.nic)}
+                onClick={() => handleApprove(p)}
                 style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}
               >
                 <ShieldCheck size={13} /> Approve
@@ -300,7 +304,7 @@ export default function ProsumersPage() {
                 type="button"
                 className="btn btn-sm btn-outline-danger"
                 title="Reject Activation"
-                onClick={() => handleReject(p.nic)}
+                onClick={() => handleReject(p)}
               >
                 <XCircle size={13} />
               </button>
@@ -311,17 +315,17 @@ export default function ProsumersPage() {
               type="button"
               className="btn btn-sm btn-outline-danger"
               title="Deactivate Profile"
-              onClick={() => handleDeactivate(p.nic)}
+              onClick={() => handleDeactivate(p)}
             >
               <UserX size={13} />
             </button>
           )}
-          {p.status === 'Deactivated' && (
+          {(p.status === 'Deactivated' || p.status === 'Inactive') && (
             <button
               type="button"
               className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
               title="Reactivate (Backoffice Officer Only)"
-              onClick={() => handleReactivate(p.nic)}
+              onClick={() => handleReactivate(p)}
               style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}
             >
               <UserCheck size={13} /> Reactivate
@@ -370,7 +374,13 @@ export default function ProsumersPage() {
       {/* Filter Tabs */}
       <div className="d-flex gap-2 mb-3 align-items-center">
         {(['All', 'Active', 'PendingActivation', 'Deactivated'] as const).map(tab => {
-          const count = tab === 'All' ? prosumers.length : prosumers.filter(p => p.status === tab).length;
+          const count = tab === 'All'
+            ? prosumers.length
+            : prosumers.filter(p => {
+                if (tab === 'PendingActivation') return p.status === 'PendingActivation' || p.status === 'Pending';
+                if (tab === 'Deactivated') return p.status === 'Deactivated' || p.status === 'Inactive';
+                return p.status === tab;
+              }).length;
           const label = tab === 'PendingActivation' ? 'Pending Activations' : tab;
           const isSelected = filter === tab;
           return (

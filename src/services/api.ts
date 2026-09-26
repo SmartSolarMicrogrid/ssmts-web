@@ -164,6 +164,13 @@ export const usersApi = {
   },
 };
 
+function normalizeProsumerStatus(status: string): Prosumer['status'] {
+  if (!status) return 'Active';
+  if (status === 'Pending' || status === 'PendingActivation') return 'PendingActivation';
+  if (status === 'Inactive' || status === 'Deactivated') return 'Deactivated';
+  return (status as Prosumer['status']) || 'Active';
+}
+
 // ── Prosumers Service (Module 2 — Backoffice & Prosumer) ─────────────────────
 export const prosumersApi = {
   async getAll(): Promise<Prosumer[]> {
@@ -179,12 +186,13 @@ export const prosumersApi = {
     }
     const data = await request<BackendProsumer[]>('/prosumers');
     return (data || []).map(p => ({
+      id: p.id,
       nic: p.nic,
       name: p.fullName,
       email: p.email,
       phone: p.phone,
       address: p.address,
-      status: (p.status as Prosumer['status']) || 'Active',
+      status: normalizeProsumerStatus(p.status),
       creditBalance: 0,
       registeredAt: p.registeredAt ? p.registeredAt.split('T')[0] : new Date().toISOString().split('T')[0],
     }));
@@ -204,12 +212,13 @@ export const prosumersApi = {
     const p = await request<BackendProsumer>(`/prosumers/${nic}`);
     if (!p) return null;
     return {
+      id: p.id,
       nic: p.nic,
       name: p.fullName,
       email: p.email,
       phone: p.phone,
       address: p.address,
-      status: (p.status as Prosumer['status']) || 'Active',
+      status: normalizeProsumerStatus(p.status),
       creditBalance: 0,
       registeredAt: p.registeredAt ? p.registeredAt.split('T')[0] : new Date().toISOString().split('T')[0],
     };
@@ -231,12 +240,13 @@ export const prosumersApi = {
       body: JSON.stringify(data),
     });
     return {
+      id: p.id,
       nic: p.nic,
       name: p.fullName,
       email: p.email,
       phone: p.phone,
       address: p.address,
-      status: (p.status as Prosumer['status']) || 'Active',
+      status: normalizeProsumerStatus(p.status),
       creditBalance: 0,
       registeredAt: p.registeredAt ? p.registeredAt.split('T')[0] : new Date().toISOString().split('T')[0],
     };
@@ -274,6 +284,7 @@ export const prosumersApi = {
     }
     const data = await request<BackendProsumer[]>('/prosumers/pending');
     return (data || []).map(p => ({
+      id: p.id,
       nic: p.nic,
       name: p.fullName,
       email: p.email,
