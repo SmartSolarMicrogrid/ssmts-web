@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,6 +98,8 @@ export default function LoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     autoComplete="current-password"
+                    onKeyUp={e => setCapsLockOn(e.getModifierState('CapsLock'))}
+                    onBlur={() => setCapsLockOn(false)}
                     required
                   />
                   <button
@@ -108,6 +111,9 @@ export default function LoginPage() {
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {capsLockOn && (
+                  <small className="text-warning d-block mt-1" role="status">Caps Lock is on</small>
+                )}
               </div>
 
               <div className="form-actions-row">
