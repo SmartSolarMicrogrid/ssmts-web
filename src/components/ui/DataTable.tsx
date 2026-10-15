@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface Column<T> {
   key: string;
@@ -41,8 +41,18 @@ export default function DataTable<T extends Record<string, any>>({
           <input
             type="text" className="form-control" placeholder="Search..."
             value={query} onChange={e => handleSearch(e.target.value)}
-            style={{ borderLeft: 'none' }}
+            style={{ borderLeft: 'none', borderRight: query ? 'none' : undefined }}
           />
+          {query && (
+            <button
+              type="button" className="input-group-text bg-white"
+              onClick={() => handleSearch('')}
+              aria-label="Clear search" title="Clear search"
+              style={{ border: '1px solid #d1d5db', borderLeft: 'none' }}
+            >
+              <X size={14} className="text-muted" />
+            </button>
+          )}
         </div>
         <small className="text-muted">{filtered.length} record{filtered.length !== 1 ? 's' : ''}</small>
       </div>
@@ -69,7 +79,9 @@ export default function DataTable<T extends Record<string, any>>({
 
       {totalPages > 1 && (
         <div className="d-flex justify-content-between align-items-center mt-3">
-          <small className="text-muted">Page {page} of {totalPages}</small>
+          <small className="text-muted">
+            Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} · Page {page} of {totalPages}
+          </small>
           <div className="d-flex gap-1">
             <button className="btn btn-outline-secondary btn-sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
               <ChevronLeft size={14} />

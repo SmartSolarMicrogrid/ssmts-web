@@ -12,10 +12,16 @@ const map: Record<string, string> = {
   Maintenance: 'status-maintenance',
   Completed: 'status-completed',
   Cancelled: 'status-cancelled',
+  Rejected: 'status-rejected',
+  InProgress: 'status-in-progress',
+  Expired: 'status-expired',
+  NoShow: 'status-expired',
 };
 
 const labelMap: Record<string, string> = {
   PendingActivation: 'Pending Activation',
+  InProgress: 'In Progress',
+  NoShow: 'No Show',
 };
 
 export default function StatusPill({ status }: StatusPillProps) {
